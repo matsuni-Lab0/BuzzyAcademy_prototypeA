@@ -3,24 +3,37 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Buzzy Academy ? 6×6 三消し（拡張フック付き 完全版）</title>
+<title>Buzzy Academy – 6×6 三消し（スキルボタン＆時間バー付）</title>
 <style>
   :root{
     --cell:56px; --gap:6px; --bg:#0f172a; --panel:#111827; --muted:#9ca3af;
     --red:#ef4444; --blue:#3b82f6; --yellow:#f59e0b; --gray:#6b7280;
+    --bar-bg:#1f2937; --btn:#374151; --btn-txt:#e5e7eb; --btn-dis:#6b7280;
   }
   body{margin:0;background:var(--bg);color:#e5e7eb;font-family:system-ui,-apple-system,"Segoe UI",Roboto}
-  #wrap{max-width:420px;margin:16px auto;padding:12px}
+  #wrap{max-width:520px;margin:16px auto;padding:12px}
   h1{font-size:18px;margin:0 0 10px}
+
+  .row{display:grid;grid-template-columns:1fr auto;align-items:center;gap:8px;margin-top:10px}
   .legend{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:12px}
   .dot{width:12px;height:12px;border-radius:3px;display:inline-block}
-  .bar{height:12px;background:#1f2937;border-radius:8px;overflow:hidden;margin:6px 0 12px; position:relative;}
-  .fill{height:100%;width:0%;transition:width .25s}
+  .ready{ font-size:11px; color:#fff; background:#16a34a; padding:2px 6px; border-radius:999px; margin-left:6px; display:none;}
+  .btn{
+    padding:8px 10px;border-radius:8px;border:1px solid #4b5563;background:var(--btn);
+    color:var(--btn-txt); cursor:pointer; min-width:64px;
+  }
+  .btn:disabled{ opacity:.6; cursor:not-allowed; background:#30353c; color:#b7bec7; border-color:#454b55; }
+
+  .stack{display:flex;flex-direction:column;gap:6px}
+  .tbar, .bar{height:12px;background:var(--bar-bg);border-radius:8px;overflow:hidden;position:relative}
+  .tfill{height:100%;width:100%;background:#10b981; transition: width .25s;} /* 時間バー：減っていく */
+  .fill{height:100%;width:0%; transition: width .25s;}
   .cap{position:absolute;right:6px;top:-18px;font-size:11px;color:var(--muted)}
   .filled{outline:2px solid #fff; outline-offset:-2px; box-shadow:0 0 10px 2px rgba(255,255,255,.5)}
   .hint{font-size:12px;color:var(--muted);margin-top:6px}
+
   #board{
-    margin-top:10px;
+    margin-top:12px;
     width: calc(6*var(--cell) + 5*var(--gap));
     display:grid; grid-template-columns: repeat(6, var(--cell)); gap:var(--gap);
     background:var(--panel); padding:var(--gap); border-radius:12px;
@@ -47,84 +60,110 @@
     75%{ transform: translateX(-2px) }
     100%{ transform: translateX(0) }
   }
-  .ready{ font-size:11px; color:#fff; background:#16a34a; padding:2px 6px; border-radius:999px; margin-left:6px; }
 </style>
 </head>
 <body>
   <div id="wrap">
-    <h1>Buzzy Academy ? 色だけ版パズル（6×6, 拡張フック付き）</h1>
+    <h1>Buzzy Academy – 色だけ版パズル（スキルボタン＆時間バー付）</h1>
 
-    <div class="legend">
-      <span class="dot" style="background:var(--red)"></span>赤=グー EN
-      <span id="badge-red" class="ready" style="display:none;">READY</span>
+    <!-- RED 行 -->
+    <div class="row">
+      <div class="legend">
+        <span class="dot" style="background:var(--red)"></span>赤=グー EN
+        <span id="badge-red" class="ready">READY</span>
+      </div>
+      <button id="btn-red" class="btn">発動</button>
     </div>
-    <div class="bar" id="barwrap-red">
-      <div id="bar-red" class="fill" style="background:var(--red)"></div>
-      <span id="cap-red" class="cap"></span>
-    </div>
-
-    <div class="legend">
-      <span class="dot" style="background:var(--blue)"></span>青=チョキ EN
-      <span id="badge-blue" class="ready" style="display:none;">READY</span>
-    </div>
-    <div class="bar" id="barwrap-blue">
-      <div id="bar-blue" class="fill" style="background:var(--blue)"></div>
-      <span id="cap-blue" class="cap"></span>
+    <div class="stack">
+      <div class="tbar"><div id="time-red" class="tfill"></div></div>
+      <div class="bar" id="barwrap-red">
+        <div id="bar-red" class="fill" style="background:var(--red)"></div>
+        <span id="cap-red" class="cap"></span>
+      </div>
     </div>
 
-    <div class="legend">
-      <span class="dot" style="background:var(--yellow)"></span>黄=パー EN
-      <span id="badge-yellow" class="ready" style="display:none;">READY</span>
+    <!-- BLUE 行 -->
+    <div class="row">
+      <div class="legend">
+        <span class="dot" style="background:var(--blue)"></span>青=チョキ EN
+        <span id="badge-blue" class="ready">READY</span>
+      </div>
+      <button id="btn-blue" class="btn">発動</button>
     </div>
-    <div class="bar" id="barwrap-yellow">
-      <div id="bar-yellow" class="fill" style="background:var(--yellow)"></div>
-      <span id="cap-yellow" class="cap"></span>
+    <div class="stack">
+      <div class="tbar"><div id="time-blue" class="tfill"></div></div>
+      <div class="bar" id="barwrap-blue">
+        <div id="bar-blue" class="fill" style="background:var(--blue)"></div>
+        <span id="cap-blue" class="cap"></span>
+      </div>
     </div>
 
-    <div class="hint">・隣接2枚をタップで入替 → 縦/横で3つ以上なら消去 → 落下・補充・連鎖　・灰色はEN加算なし</div>
+    <!-- YELLOW 行 -->
+    <div class="row">
+      <div class="legend">
+        <span class="dot" style="background:var(--yellow)"></span>黄=パー EN
+        <span id="badge-yellow" class="ready">READY</span>
+      </div>
+      <button id="btn-yellow" class="btn">発動</button>
+    </div>
+    <div class="stack">
+      <div class="tbar"><div id="time-yellow" class="tfill"></div></div>
+      <div class="bar" id="barwrap-yellow">
+        <div id="bar-yellow" class="fill" style="background:var(--yellow)"></div>
+        <span id="cap-yellow" class="cap"></span>
+      </div>
+    </div>
+
+    <div class="hint">・隣接2枚をタップで入替 → 縦/横で3つ以上なら消去 → 落下・補充・連鎖　・灰色はEN加算なし<br>
+    ・各行の「発動」ボタンを押すと、その色のENがリセット（前段階仕様）。時間バーは60秒で減少（定数で変更可）。</div>
 
     <div id="board"></div>
   </div>
 
 <script>
 /* =======================
-   基本設定
+   基本設定＆タイマー設定
 ======================= */
 const ROWS=6, COLS=6;
-const ID = { RED:0, BLUE:1, YELLOW:2, GRAY:3 };            // 内部ID
+const ID = { RED:0, BLUE:1, YELLOW:2, GRAY:3 };
 const NAME_BY_ID = { 0:"RED", 1:"BLUE", 2:"YELLOW", 3:"GRAY" };
 const CLASS_BY_ID = { 0:"red", 1:"blue", 2:"yellow", 3:"gray" };
 
-/* =======================
-   拡張フック（データ駆動）
-   - 必要EN（満タン閾値）
-   - 加算量（消去時の増加）
-======================= */
+// ★ ここで時間を変更できます（秒）
+const TIME_LIMIT_SECONDS = 60;
 
-// コンテキスト（誰が・どのステージで・敵・レベル・所持アイテム など）
+// 各色の残り時間（秒）
+const timeLeft = { RED: TIME_LIMIT_SECONDS, BLUE: TIME_LIMIT_SECONDS, YELLOW: TIME_LIMIT_SECONDS };
+// タイマー間隔
+setInterval(()=>{
+  for(const k of ["RED","BLUE","YELLOW"]){
+    if(timeLeft[k]>0){ timeLeft[k]--; }
+  }
+  updateTimeBars();
+}, 1000);
+
+/* =======================
+   拡張フック（必要EN/加算量）
+======================= */
 const ctx = {
   characterId: "buzzy0006",
   stageId: "stg-1-1",
   enemyId: "goo-boss",
   level: 7,
-  itemTags: new Set(["ring_en_boost"]) // 例：所持アイテム
+  itemTags: new Set(["ring_en_boost"])
 };
 
-// 基準必要値（色ごと）? マスターが 30 に変更するならここを 30 に
-const baseEnTarget = {
-  RED: 30, BLUE: 30, YELLOW: 30
-};
+// 必要ENの基準（マスターの方針に合わせて30を初期値に）
+const baseEnTarget = { RED:30, BLUE:30, YELLOW:30 };
 
-// 必要値の補正テーブル（ALL または色名キー）
 const modifiers = {
-  byCharacter: { buzzy0006: { RED: 0.90 } },           // 赤だけ10%軽減
+  byCharacter: { buzzy0006: { RED: 0.90 } },
   byStage:     { "stg-1-1": { ALL: 1.00 }, "stg-2-1": { ALL: 1.20 } },
-  byEnemy:     { "goo-boss": { RED: 1.25 } },          // グー敵で赤が不利
-  byLevel:     (lvl)=> (lvl>=10? 1.10 : 1.00),         // Lv10以上は10%増
-  byItems:     { ring_en_boost: { ALL: 0.90 } }        // 指輪で全色10%軽減
+  byEnemy:     { "goo-boss": { RED: 1.25 } },
+  byLevel:     (lvl)=> (lvl>=10? 1.10 : 1.00),
+  byItems:     { ring_en_boost: { ALL: 0.90 } }
 };
 
-// 必要ENの最終値を返す（下限5）
 function getRequiredEN(colorName, ctx){
   let need = baseEnTarget[colorName];
   let mul = 1.0;
@@ -136,24 +175,19 @@ function getRequiredEN(colorName, ctx){
   mul *= (enm[colorName] ?? enm.ALL ?? 1.0);
   mul *= (modifiers.byLevel?.(ctx.level) ?? 1.0);
   for(const tag of ctx.itemTags){
-    const it = modifiers.byItems[tag];
-    if(it) mul *= (it[colorName] ?? it.ALL ?? 1.0);
+    const it = modifiers.byItems[tag]; if(it) mul *= (it[colorName] ?? it.ALL ?? 1.0);
   }
   return Math.max(5, Math.round(need * mul));
 }
 
-// 基準倍率（3=×1, 4=×1.5, 5+=×2）
+// 加算量
 const baseGainMult = { 3:1.0, 4:1.5, 5:2.0 };
-
-// 加算量の補正テーブル
 const gainMods = {
-  byCharacter: { buzzy0006: { ALL: 1.00, YELLOW: 1.20 } }, // 黄+20%
-  byStage:     { "stg-2-1": { ALL: 0.90 } },               // ステージ2-1は全体?10%
-  byChain:     (chain)=> (1 + Math.min(chain-1, 4)*0.05),  // 連鎖で+5%ずつ最大+20%
-  byItems:     { orb_red_up: { RED: 1.15 } },              // 例：赤+15%
+  byCharacter: { buzzy0006: { ALL: 1.00, YELLOW: 1.20 } },
+  byStage:     { "stg-2-1": { ALL: 0.90 } },
+  byChain:     (chain)=> (1 + Math.min(chain-1, 4)*0.05),
+  byItems:     { orb_red_up: { RED: 1.15 } },
 };
-
-// 消去時の加算量
 function getGainAmount(colorName, matchedCount, ctx, chain=1){
   if(colorName==="GRAY") return 0;
   const base = matchedCount * (matchedCount>=5 ? baseGainMult[5] : (baseGainMult[matchedCount]||1.0));
@@ -164,8 +198,7 @@ function getGainAmount(colorName, matchedCount, ctx, chain=1){
   mul *= (st[colorName] ?? st.ALL ?? 1.0);
   mul *= (gainMods.byChain?.(chain) ?? 1.0);
   for(const tag of ctx.itemTags){
-    const it = gainMods.byItems[tag];
-    if(it) mul *= (it[colorName] ?? it.ALL ?? 1.0);
+    const it = gainMods.byItems[tag]; if(it) mul *= (it[colorName] ?? it.ALL ?? 1.0);
   }
   return Math.max(0, Math.round(base * mul));
 }
@@ -173,31 +206,27 @@ function getGainAmount(colorName, matchedCount, ctx, chain=1){
 /* =======================
    状態
 ======================= */
-let grid = [];           // 2次元配列：色ID(0..3)
-let firstPick = null;    // {r,c}
+let grid = [];
+let firstPick = null;
 let en = { RED:0, BLUE:0, YELLOW:0 };
-let busy = false;        // 解決中フラグ
+let busy = false;
 
 const board = document.getElementById('board');
 
 /* =======================
-   初期化
+   盤面生成・描画
 ======================= */
 initBoard();
 renderAll();
 updateBars();
+updateTimeBars();
 
-/* =======================
-   盤面生成・描画
-======================= */
 function initBoard(){
   grid = Array.from({length:ROWS}, ()=>Array(COLS).fill(0));
   for(let r=0;r<ROWS;r++){
     for(let c=0;c<COLS;c++){
       let color;
-      do{
-        color = randColor();
-      }while(causesImmediateMatch(r,c,color));
+      do{ color = randColor(); }while(causesImmediateMatch(r,c,color));
       grid[r][c]=color;
     }
   }
@@ -208,7 +237,6 @@ function causesImmediateMatch(r,c,color){
   if(r>=2 && grid[r-1][c]===color && grid[r-2][c]===color) return true;
   return false;
 }
-
 function renderAll(){
   board.innerHTML='';
   for(let r=0;r<ROWS;r++){
@@ -222,72 +250,44 @@ function renderAll(){
   }
 }
 
-function highlight(r,c,on){
-  const idx=r*COLS+c;
-  const el = board.children[idx];
-  if(!el) return;
-  if(on) el.classList.add('selected'); else el.classList.remove('selected');
-}
-
 /* =======================
-   入力処理
+   入力・スワップ
 ======================= */
 function onCellClick(e){
   if(busy) return;
   const r=+e.currentTarget.dataset.r, c=+e.currentTarget.dataset.c;
-
-  if(!firstPick){
-    firstPick={r,c};
-    highlight(r,c,true);
-    return;
-  }
-  if(firstPick.r===r && firstPick.c===c){
-    highlight(r,c,false);
-    firstPick=null;
-    return;
-  }
-  // 隣接チェック
+  if(!firstPick){ firstPick={r,c}; highlight(r,c,true); return; }
+  if(firstPick.r===r && firstPick.c===c){ highlight(r,c,false); firstPick=null; return; }
   const dr=Math.abs(firstPick.r-r), dc=Math.abs(firstPick.c-c);
-  if(dr+dc!==1){
-    flashShake(e.currentTarget);
-    return;
-  }
-
+  if(dr+dc!==1){ flashShake(e.currentTarget); return; }
   const r1=firstPick.r, c1=firstPick.c, r2=r, c2=c;
   highlight(r1,c1,false); firstPick=null;
   trySwap(r1,c1,r2,c2);
 }
-
-function flashShake(el){
-  el.classList.add('shake');
-  setTimeout(()=>el.classList.remove('shake'), 220);
+function highlight(r,c,on){
+  const idx=r*COLS+c, el = board.children[idx];
+  if(!el) return;
+  if(on) el.classList.add('selected'); else el.classList.remove('selected');
 }
+function flashShake(el){ el.classList.add('shake'); setTimeout(()=>el.classList.remove('shake'), 220); }
 
-/* =======================
-   スワップ＆解決ループ
-======================= */
 function trySwap(r1,c1,r2,c2){
   busy=true;
   swapInData(r1,c1,r2,c2);
   renderAll();
-
   const matches=findMatches();
   if(matches.set.size===0){
-    swapInData(r1,c1,r2,c2); // 戻す
-    renderAll();
-    busy=false;
+    swapInData(r1,c1,r2,c2); renderAll(); busy=false;
   }else{
-    resolveBoard(matches, 1).then(()=>{ busy=false; });
+    resolveBoard(matches,1).then(()=>{ busy=false; });
   }
 }
 function swapInData(r1,c1,r2,c2){
-  const tmp=grid[r1][c1];
-  grid[r1][c1]=grid[r2][c2];
-  grid[r2][c2]=tmp;
+  const tmp=grid[r1][c1]; grid[r1][c1]=grid[r2][c2]; grid[r2][c2]=tmp;
 }
 
 /* =======================
-   マッチ探索（縦・横のみ）
+   マッチ探索（縦・横）
 ======================= */
 function findMatches(){
   const toClear=new Set();
@@ -316,7 +316,7 @@ function findMatches(){
     }
   }
   // 色別カウント
-  const groups={}; // colorName -> count
+  const groups={};
   for(const key of toClear){
     const [r,c]=key.split(',').map(Number);
     const colId=grid[r][c];
@@ -327,39 +327,25 @@ function findMatches(){
 }
 
 /* =======================
-   盤面解決（消去→落下→補充→連鎖）
+   解決（消去→落下→補充→連鎖）
 ======================= */
 async function resolveBoard(matches, chain){
-  // EN加算（灰は関数側で0になる）
   applyEN(matches.groups, chain);
-
-  // 消去
   for(const key of matches.set){
-    const [r,c]=key.split(',').map(Number);
-    grid[r][c]=null;
+    const [r,c]=key.split(',').map(Number); grid[r][c]=null;
   }
   renderAll();
-
-  // 落下
-  collapse();
-  // 補充
-  refill();
-  renderAll();
-
-  // 次の連鎖
+  collapse(); refill(); renderAll();
   const next=findMatches();
-  if(next.set.size>0){
-    await sleep(120);
-    return resolveBoard(next, chain+1);
-  }
+  if(next.set.size>0){ await sleep(120); return resolveBoard(next, chain+1); }
 }
 function applyEN(groups, chain){
   for(const colorName in groups){
     const count=groups[colorName];
-    const add = getGainAmount(colorName, count, ctx, chain);
+    const add=getGainAmount(colorName, count, ctx, chain);
     if(colorName in en){
-      const need = getRequiredEN(colorName, ctx);
-      en[colorName] = Math.min(need, en[colorName] + add);
+      const need=getRequiredEN(colorName, ctx);
+      en[colorName] = Math.min(need, en[colorName]+add);
     }
   }
   updateBars();
@@ -369,10 +355,7 @@ function collapse(){
     let write=ROWS-1;
     for(let r=ROWS-1;r>=0;r--){
       if(grid[r][c]!==null){
-        if(write!==r){
-          grid[write][c]=grid[r][c];
-          grid[r][c]=null;
-        }
+        if(write!==r){ grid[write][c]=grid[r][c]; grid[r][c]=null; }
         write--;
       }
     }
@@ -381,36 +364,26 @@ function collapse(){
 function refill(){
   for(let c=0;c<COLS;c++){
     for(let r=0;r<ROWS;r++){
-      if(grid[r][c]===null){
-        grid[r][c]=randColor();
-      }
+      if(grid[r][c]===null){ grid[r][c]=randColor(); }
     }
   }
 }
 
 /* =======================
-   UI更新
+   UI更新（ENバー・時間バー・READY）
 ======================= */
 function updateBars(){
-  const needR = getRequiredEN("RED", ctx);
-  const needB = getRequiredEN("BLUE", ctx);
-  const needY = getRequiredEN("YELLOW", ctx);
+  const needR=getRequiredEN("RED",ctx), needB=getRequiredEN("BLUE",ctx), needY=getRequiredEN("YELLOW",ctx);
+  const pct=(cur,need)=> (cur/need*100).toFixed(0)+'%';
 
-  const pct = (cur, need)=> (cur/need*100).toFixed(0)+'%';
+  document.getElementById('bar-red').style.width   = pct(en.RED, needR);
+  document.getElementById('bar-blue').style.width  = pct(en.BLUE, needB);
+  document.getElementById('bar-yellow').style.width= pct(en.YELLOW, needY);
 
-  const red = document.getElementById('bar-red');
-  const blue= document.getElementById('bar-blue');
-  const yel = document.getElementById('bar-yellow');
-  red.style.width  = pct(en.RED, needR);
-  blue.style.width = pct(en.BLUE, needB);
-  yel.style.width  = pct(en.YELLOW, needY);
-
-  // 上限値表示
   document.getElementById('cap-red').textContent    = `目標: ${needR}`;
   document.getElementById('cap-blue').textContent   = `目標: ${needB}`;
   document.getElementById('cap-yellow').textContent = `目標: ${needY}`;
 
-  // READY表示と枠線
   toggleReady('red',   en.RED   >= needR);
   toggleReady('blue',  en.BLUE  >= needB);
   toggleReady('yellow',en.YELLOW>= needY);
@@ -418,14 +391,31 @@ function updateBars(){
 function toggleReady(colorKey, on){
   const badge = document.getElementById(`badge-${colorKey}`);
   const wrap  = document.getElementById(`barwrap-${colorKey}`);
-  if(on){
-    badge.style.display='inline-block';
-    wrap.classList.add('filled');
-  }else{
-    badge.style.display='none';
-    wrap.classList.remove('filled');
-  }
+  badge.style.display = on ? 'inline-block' : 'none';
+  wrap.classList.toggle('filled', on);
 }
+
+function updateTimeBars(){
+  const pct=(cur)=> (cur/TIME_LIMIT_SECONDS*100).toFixed(0)+'%';
+  document.getElementById('time-red').style.width    = pct(timeLeft.RED);
+  document.getElementById('time-blue').style.width   = pct(timeLeft.BLUE);
+  document.getElementById('time-yellow').style.width = pct(timeLeft.YELLOW);
+}
+// 任意で呼べる：その色のタイマーを満タンに戻す
+function resetTimer(colorName){ timeLeft[colorName] = TIME_LIMIT_SECONDS; updateTimeBars(); }
+
+/* =======================
+   スキル「発動」ボタン（前段階仕様：ENリセット）
+======================= */
+document.getElementById('btn-red').addEventListener('click', ()=>{
+  en.RED = 0; updateBars();
+});
+document.getElementById('btn-blue').addEventListener('click', ()=>{
+  en.BLUE = 0; updateBars();
+});
+document.getElementById('btn-yellow').addEventListener('click', ()=>{
+  en.YELLOW = 0; updateBars();
+});
 
 /* =======================
    小物
