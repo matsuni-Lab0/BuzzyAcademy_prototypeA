@@ -216,7 +216,7 @@ function updateTimeBar(){ const pct=(timeLeft/TIME_LIMIT_SECONDS*100).toFixed(0)
 /* ====== 敵・プレイヤー・RPS倍率 ====== */
 const ATTR_LABEL = { RED:"赤 (グー)", BLUE:"青 (チョキ)", YELLOW:"黄 (パー)" };
 const player = { name:"めぐ", skills:{ RED:{name:"パンチ",power:50}, BLUE:{name:"キック",power:100}, YELLOW:{name:"つんつん",power:150} } };
-const enemy = { name:"あべこべ", attr:"RED", maxHP:1000, hp:1000, imgSrc:"images/char1.png" };
+const enemy = { name:"あべこべ", attr:"RED", maxHP:500, hp:500, imgSrc:"images/char1.png" };
 const RPS_RATE = { win:1.2, draw:1.0, lose:0.7 };
 const beats=(a,b)=> (a==="RED"&&b==="BLUE")||(a==="BLUE"&&b==="YELLOW")||(a==="YELLOW"&&b==="RED");
 const rpsMul=(enemyAttr, skillColor)=> enemyAttr===skillColor? RPS_RATE.draw : (beats(skillColor, enemyAttr)? RPS_RATE.win : RPS_RATE.lose);
@@ -382,3 +382,4 @@ function sleep(ms){ return new Promise(res=>setTimeout(res,ms)); }
 </script>
 </body>
 </html>
+
