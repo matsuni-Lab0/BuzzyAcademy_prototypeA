@@ -339,11 +339,27 @@ function onCellClick(e){
   const r1=firstPick.r,c1=firstPick.c,r2=r,c2=c; highlight(r1,c1,false); firstPick=null; trySwap(r1,c1,r2,c2);
 }
 function highlight(r,c,on){ const idx=r*COLS+c, el=board.children[idx+1]; if(!el)return; if(on)el.classList.add('selected'); else el.classList.remove('selected'); }
-function trySwap(r1,c1,r2,c2){
-  busy=true; swapInData(r1,c1,r2,c2); renderAll(); const matches=findMatches();
-  if(matches.set.size===0){ swapInData(r1,c1,r2,c2); renderAll(); busy=false; }
-  else{ resolveBoard(matches,1).then(()=>{ busy=false; }); }
+async function trySwap(r1,c1,r2,c2){
+  if (busy) return;
+  busy = true;
+  try{
+    swapInData(r1,c1,r2,c2);
+    renderAll();
+    const matches = findMatches();
+    if(matches.set.size===0){
+      // マッチしなければ元に戻す
+      swapInData(r1,c1,r2,c2);
+      renderAll();
+    }else{
+      // マッチあり：消去→落下→補充→連鎖
+      await resolveBoard(matches, 1);
+    }
+  } finally {
+    // どんなケースでも必ず解除
+    busy = false;
+  }
 }
+
 function swapInData(r1,c1,r2,c2){ const t=grid[r1][c1]; grid[r1][c1]=grid[r2][c2]; grid[r2][c2]=t; }
 function findMatches(){
   const toClear=new Set();
@@ -393,7 +409,7 @@ function hideOverlay(){ document.getElementById('overlay').style.display='none';
 document.getElementById('btn-reset').addEventListener('click', resetGame);
 
 /* ====== 雑多 ====== */
-function sleep(ms){ return new Promise(res=>resolve=>setTimeout(resolve,ms)); } // not used here
+function sleep(ms){ return new Promise(resolve => setTimeout(resolve, ms)); } // not used here
 function resetGame(){
   enemy.hp = enemy.maxHP;
   gameOver=false; busy=false; firstPick=null; en={RED:0,BLUE:0,YELLOW:0};
@@ -414,3 +430,4 @@ function resetGame(){
 </script>
 </body>
 </html>
+
