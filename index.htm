@@ -3,12 +3,13 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Buzzy Academy – レイアウト最適化（固定バー長／盤面中央／VS表記）</title>
+<title>Buzzy Academy – 微調整版（READY発光／固定バー長短／VS縮小／白フレーム）</title>
 <style>
   :root{
-    --cell:48px;               /* 盤面セルサイズ（狭幅で下の@mediaで段階縮小） */
+    --cell:48px;               /* 盤面セルサイズ */
     --gap:6px;
-    --barW: clamp(180px, 45vw, 320px); /* ← 各色バーの “容器” を固定長にする */
+    /* 各色バー容器の長さ（3行とも同一）— 少し短めに調整 */
+    --barW: clamp(160px, 42vw, 260px);
     --bg:#0f172a; --panel:#111827; --muted:#9ca3af;
     --red:#ef4444; --blue:#3b82f6; --yellow:#f59e0b; --gray:#6b7280;
     --bar-bg:#1f2937; --btn:#374151; --btn-txt:#e5e7eb; --good:#10b981;
@@ -28,14 +29,16 @@
   /* 敵情報 */
   .enemy-top{display:grid;grid-template-columns:1fr 1fr 1fr;align-items:center;gap:8px;margin-top:10px}
   .e-col{display:flex;align-items:center;gap:8px;justify-content:flex-start}
-  .e-mid{justify-content:center;font-weight:700}
+  .e-mid{justify-content:center;font-weight:700; font-size:15px;} /* ← 少し小さく */
   .e-right{justify-content:flex-end}
   .attr-dot{width:12px;height:12px;border-radius:3px;display:inline-block}
 
   .enemy-img-wrap{display:flex;justify-content:center;align-items:center;margin-top:8px}
   .enemy-img{
     width:100%; max-width:440px; height:auto; max-height:110px;
-    object-fit:contain; border-radius:12px; background:#0b1222; border:1px solid #1f2937;
+    object-fit:contain; border-radius:12px;
+    background:#ffffff;        /* ← 背景を白に */
+    border:1px solid #e5e7eb;  /* 白背景に合う薄い枠 */
     display:block; padding:8px;
   }
   .hpbar{height:10px;background:#334155;border-radius:8px;overflow:hidden;position:relative;margin-top:8px}
@@ -45,27 +48,45 @@
   /* EN行（1行固定）：左=技名+威力, 中=固定長バー, 右=ボタン */
   .row{
     display:grid;
-    grid-template-columns: auto var(--barW) auto; /* ← バー列を固定長にする */
+    grid-template-columns: auto var(--barW) auto; /* ← 中央列は完全固定長（3行同一） */
     gap:10px; align-items:center; margin-top:10px;
     min-height:34px;
   }
   .skillinfo{
     font-size:13px;color:#e5e7eb;display:flex;align-items:center;gap:8px;
     white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
-    max-width: 42vw; /* 左列が広がり過ぎるのを抑制 */
+    max-width: 42vw;
   }
   .dot{width:12px;height:12px;border-radius:3px;display:inline-block;flex:0 0 auto}
   .ready{ font-size:11px; color:#fff; background:#16a34a; padding:2px 6px; border-radius:999px; margin-left:6px; display:none; }
 
-  .bar.en{ width:100%; height:10px; }  /* 中央列のバー容器は固定長、内部のfill幅だけが%で伸縮 */
+  .bar.en{ width:var(--barW); height:10px; }  /* 念のため幅を固定変数で明示 */
   .filled{outline:2px solid #fff; outline-offset:-2px; box-shadow:0 0 10px 2px rgba(255,255,255,.5)}
 
-  .btn{ padding:8px 10px;border-radius:8px;border:1px solid #4b5563;background:var(--btn); color:#btn-txt; cursor:pointer; min-width:64px; }
+  /* 発動ボタン */
+  .btn{
+    padding:8px 10px;border-radius:8px;border:1px solid #4b5563;
+    background:var(--btn); color:var(--btn-txt); cursor:pointer; min-width:64px;
+    transition: box-shadow .2s, transform .1s, background .2s;
+  }
   .btn:disabled{ opacity:.6; cursor:not-allowed; background:#30353c; color:#b7bec7; border-color:#454b55; }
+
+  /* READYになったボタンの「光る」表現 */
+  .btn.pulse{
+    box-shadow: 0 0 0 0 rgba(255,255,255,.8), 0 0 10px 2px currentColor;
+    animation: pulseGlow 1.2s ease-in-out infinite;
+    background: linear-gradient(180deg, #55607a, #2d3441);
+    border-color:#9aa2ad;
+  }
+  @keyframes pulseGlow{
+    0%   { box-shadow: 0 0 0 0 rgba(255,255,255,.8), 0 0 10px 2px rgba(255,255,255,.6); transform: translateZ(0) }
+    50%  { box-shadow: 0 0 20px 6px rgba(255,255,255,.35), 0 0 16px 4px rgba(255,255,255,.55); transform: translateZ(0) }
+    100% { box-shadow: 0 0 0 0 rgba(255,255,255,.0), 0 0 10px 2px rgba(255,255,255,.35); transform: translateZ(0) }
+  }
 
   .hint{font-size:12px;color:var(--muted);margin-top:6px}
 
-  /* 盤面（中央寄せ & 縮小） */
+  /* 盤面（中央寄せ） */
   #board{
     margin:12px auto 0; /* ← 中央寄せ */
     width: calc(6*var(--cell) + 5*var(--gap));
@@ -100,21 +121,23 @@
     100%{ transform: translateX(0) }
   }
 
-  /* 狭幅で段階縮小 */
+  /* 狭幅で段階縮小＆VS表記さらに小さく */
   @media (max-width: 420px){
-    :root{ --cell:44px; --barW: clamp(160px, 50vw, 280px); }
+    :root{ --cell:44px; --barW: clamp(150px, 48vw, 240px); }
     .skillinfo{ font-size:12px; max-width:40vw; }
+    .e-mid{ font-size:14px; }
   }
   @media (max-width: 360px){
-    :root{ --cell:40px; --barW: clamp(140px, 52vw, 250px); }
+    :root{ --cell:40px; --barW: clamp(140px, 50vw, 220px); }
     .btn{ padding:6px 8px; min-width:56px; }
+    .e-mid{ font-size:13px; }
   }
 </style>
 </head>
 <body>
   <div id="wrap">
     <h1>
-      <span>Buzzy Academy – 固定バー長・中央盤面</span>
+      <span>Buzzy Academy – 微調整版</span>
       <button id="btn-reset" class="debug-btn" title="臨時デバッグ用：ゲームを即リセット">リセット</button>
     </h1>
 
@@ -135,7 +158,7 @@
       <div class="e-col e-right">HP: <span id="enemy-hpnum">1000</span></div>
     </div>
 
-    <!-- 敵画像 -->
+    <!-- 敵画像（白背景フレーム） -->
     <div class="enemy-img-wrap">
       <img id="enemy-img" class="enemy-img" src="images/char1.png" alt="enemy">
     </div>
@@ -143,9 +166,7 @@
     <!-- 敵HPバー -->
     <div class="hpbar"><div id="ehp" class="hpfill"></div><div id="ehptext" class="hptext"></div></div>
 
-    <!-- ※プレイヤー概要コメントは削除しました -->
-
-    <!-- EN：3行（各色1行固定） -->
+    <!-- EN：3行（各色1行固定・中央バーは固定長） -->
     <div class="row">
       <div class="skillinfo">
         <span class="dot" style="background:var(--red)"></span>
@@ -173,7 +194,7 @@
       <button id="btn-yellow" class="btn" disabled>発動</button>
     </div>
 
-    <div class="hint">・各色は1行表示（固定長バー）。READY時のみ発動可。盤面は常に中央寄せ。</div>
+    <div class="hint">・READY時は発動ボタンが光ります。バー容器は3色とも同一長。盤面は中央寄せ。</div>
 
     <!-- 盤面 -->
     <div id="board"><div id="overlay" class="overlay">TIME UP!</div></div>
@@ -310,12 +331,23 @@ function updateBars(){
 
   const rReady=en.RED>=needR, bReady=en.BLUE>=needB, yReady=en.YELLOW>=needY;
   toggleReady('red', rReady); toggleReady('blue', bReady); toggleReady('yellow', yReady);
+
+  // ボタンの有効/無効と「発光」クラス付与
   setButtonEnabled('red', rReady && !gameOver);
   setButtonEnabled('blue', bReady && !gameOver);
   setButtonEnabled('yellow', yReady && !gameOver);
 }
-function toggleReady(colorKey,on){ const badge=document.getElementById(`badge-${colorKey}`); const wrap=document.getElementById(`barwrap-${colorKey}`); badge.style.display=on?'inline-block':'none'; wrap.classList.toggle('filled',on); }
-function setButtonEnabled(colorKey,on){ const btn=document.getElementById(`btn-${colorKey}`); btn.disabled=!on; }
+function toggleReady(colorKey,on){
+  const badge=document.getElementById(`badge-${colorKey}`);
+  const wrap=document.getElementById(`barwrap-${colorKey}`);
+  badge.style.display=on?'inline-block':'none';
+  wrap.classList.toggle('filled',on);
+}
+function setButtonEnabled(colorKey,on){
+  const btn=document.getElementById(`btn-${colorKey}`);
+  btn.disabled=!on;
+  btn.classList.toggle('pulse', on); // ← READY時に光らせる
+}
 
 /* ====== 発動（威力×RPS倍率） ====== */
 document.getElementById('btn-red').addEventListener('click', ()=> useSkill("RED"));
