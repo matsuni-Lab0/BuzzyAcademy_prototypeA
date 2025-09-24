@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Buzzy Academy – 完全版（敵のみ／RPS倍率／EN右寄せロングバー）</title>
+<title>Buzzy Academy – 完全版（敵画像対応／RPS倍率／EN右寄せロングバー）</title>
 <style>
   :root{
     --cell:56px; --gap:6px; --bg:#0f172a; --panel:#111827; --muted:#9ca3af;
@@ -32,7 +32,7 @@
   .enemy-img{
     width:100%; max-width:440px; height:auto; max-height:120px;
     object-fit:contain; border-radius:12px; background:#0b1222; border:1px solid #1f2937;
-    display:flex; align-items:center; justify-content:center; font-size:42px; padding:8px;
+    display:block; padding:8px;
   }
   .hpbar{height:12px;background:#334155;border-radius:8px;overflow:hidden;position:relative;margin-top:8px}
   .hpfill{height:100%;width:100%;background:var(--good);transition:width .25s}
@@ -123,7 +123,7 @@
       <span id="time-cap" class="cap"></span>
     </div>
 
-    <!-- 敵情報 -->
+    <!-- 敵情報（属性／名前／HP数値） -->
     <div class="enemy-top">
       <div class="e-col">
         <span class="attr-dot" id="enemy-attr-dot"></span>
@@ -133,9 +133,9 @@
       <div class="e-col e-right">HP: <span id="enemy-hpnum">1000</span></div>
     </div>
 
-    <!-- 敵イラスト -->
+    <!-- 敵画像（images/char1.png を使用） -->
     <div class="enemy-img-wrap">
-      <div id="enemy-img" class="enemy-img">🪨</div>
+      <img id="enemy-img" class="enemy-img" src="images/char1.png" alt="enemy">
     </div>
 
     <!-- 敵HPバー -->
@@ -149,7 +149,6 @@
     </div>
 
     <!-- EN：左=技名＋威力＋READY、右=発動ボタン＋長めバー -->
-    <!-- 赤 -->
     <div class="row">
       <div class="skillinfo">
         <span class="dot" style="background:var(--red)"></span>
@@ -161,7 +160,6 @@
       </div>
     </div>
 
-    <!-- 青 -->
     <div class="row">
       <div class="skillinfo">
         <span class="dot" style="background:var(--blue)"></span>
@@ -173,7 +171,6 @@
       </div>
     </div>
 
-    <!-- 黄 -->
     <div class="row">
       <div class="skillinfo">
         <span class="dot" style="background:var(--yellow)"></span>
@@ -207,7 +204,7 @@ function resetStageTimer(){ timeLeft=TIME_LIMIT_SECONDS; updateTimeBar(); }
 
 /* ====== 敵・プレイヤー・RPS倍率 ====== */
 const ATTR_LABEL = { RED:"赤 (グー)", BLUE:"青 (チョキ)", YELLOW:"黄 (パー)" };
-const enemy = { name:"あべこべ", attr:"RED", maxHP:1000, hp:1000, emoji:"🪨" };
+const enemy = { name:"あべこべ", attr:"RED", maxHP:1000, hp:1000, imgSrc:"images/char1.png" };
 const player = { name:"めぐ", skills:{ RED:{name:"パンチ",power:50}, BLUE:{name:"キック",power:100}, YELLOW:{name:"つんつん",power:150} } };
 const RPS_RATE = { win:1.2, draw:1.0, lose:0.7 }; // ←倍率はここで調整
 const beats=(a,b)=> (a==="RED"&&b==="BLUE")||(a==="BLUE"&&b==="YELLOW")||(a==="YELLOW"&&b==="RED");
@@ -218,7 +215,8 @@ function renderEnemyHeader(){
   document.getElementById('enemy-hpnum').textContent=enemy.hp;
   document.getElementById('enemy-attr-dot').style.background=(enemy.attr==="RED"?"var(--red)":enemy.attr==="BLUE"?"var(--blue)":"var(--yellow)");
   document.getElementById('enemy-attr-label').textContent=ATTR_LABEL[enemy.attr];
-  document.getElementById('enemy-img').textContent=enemy.emoji;
+  // 画像反映（キャッシュ更新したいときは '?v=' + Date.now() を付けてもOK）
+  document.getElementById('enemy-img').src = enemy.imgSrc;
 }
 function updateEnemyHPBar(){
   const pct=(enemy.hp/enemy.maxHP*100).toFixed(0)+'%';
@@ -288,11 +286,10 @@ function onCellClick(e){
   if(!firstPick){ firstPick={r,c}; highlight(r,c,true); return; }
   if(firstPick.r===r && firstPick.c===c){ highlight(r,c,false); firstPick=null; return; }
   const dr=Math.abs(firstPick.r-r), dc=Math.abs(firstPick.c-c);
-  if(dr+dc!==1){ flashShake(e.currentTarget); return; }
+  if(dr+dc!==1){ e.currentTarget.classList.add('shake'); setTimeout(()=>e.currentTarget.classList.remove('shake'),220); return; }
   const r1=firstPick.r,c1=firstPick.c,r2=r,c2=c; highlight(r1,c1,false); firstPick=null; trySwap(r1,c1,r2,c2);
 }
 function highlight(r,c,on){ const idx=r*COLS+c, el=board.children[idx+1]; if(!el)return; if(on)el.classList.add('selected'); else el.classList.remove('selected'); }
-function flashShake(el){ el.classList.add('shake'); setTimeout(()=>el.classList.remove('shake'),220); }
 function trySwap(r1,c1,r2,c2){
   busy=true; swapInData(r1,c1,r2,c2); renderAll(); const matches=findMatches();
   if(matches.set.size===0){ swapInData(r1,c1,r2,c2); renderAll(); busy=false; }
