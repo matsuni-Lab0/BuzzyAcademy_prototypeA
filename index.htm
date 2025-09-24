@@ -3,12 +3,10 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Buzzy Academy – 微調整版（READY発光／固定バー長短／VS縮小／白フレーム）</title>
+<title>Buzzy Academy – データ駆動版（敵/プレイヤー切替）</title>
 <style>
   :root{
-    --cell:48px;               /* 盤面セルサイズ */
-    --gap:6px;
-    /* 各色バー容器の長さ（3行とも同一）— 少し短めに調整 */
+    --cell:48px; --gap:6px;
     --barW: clamp(160px, 42vw, 260px);
     --bg:#0f172a; --panel:#111827; --muted:#9ca3af;
     --red:#ef4444; --blue:#3b82f6; --yellow:#f59e0b; --gray:#6b7280;
@@ -20,6 +18,10 @@
   h1{font-size:18px;margin:0 0 10px; display:flex; justify-content:space-between; align-items:center;}
   .debug-btn{padding:8px 10px;border-radius:8px;border:1px solid #4b5563;background:#0ea5e9;color:#083344;cursor:pointer}
 
+  /* セレクタ */
+  .cfg{display:grid;grid-template-columns:1fr 1fr auto; gap:8px; align-items:center; margin:6px 0 8px}
+  .sel{background:#0b1222;color:#e5e7eb;border:1px solid #334155;border-radius:8px;padding:8px 10px}
+
   /* 時間バー */
   .legend{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:12px;margin-top:4px}
   .bar{height:10px;background:var(--bar-bg);border-radius:8px;overflow:hidden;position:relative}
@@ -29,7 +31,7 @@
   /* 敵情報 */
   .enemy-top{display:grid;grid-template-columns:1fr 1fr 1fr;align-items:center;gap:8px;margin-top:10px}
   .e-col{display:flex;align-items:center;gap:8px;justify-content:flex-start}
-  .e-mid{justify-content:center;font-weight:700; font-size:15px;} /* ← 少し小さく */
+  .e-mid{justify-content:center;font-weight:700;font-size:15px}
   .e-right{justify-content:flex-end}
   .attr-dot{width:12px;height:12px;border-radius:3px;display:inline-block}
 
@@ -37,118 +39,65 @@
   .enemy-img{
     width:100%; max-width:440px; height:auto; max-height:110px;
     object-fit:contain; border-radius:12px;
-    background:#ffffff;        /* ← 背景を白に */
-    border:1px solid #e5e7eb;  /* 白背景に合う薄い枠 */
+    background:#ffffff; border:1px solid #e5e7eb;
     display:block; padding:8px;
   }
   .hpbar{height:10px;background:#334155;border-radius:8px;overflow:hidden;position:relative;margin-top:8px}
   .hpfill{height:100%;width:100%;background:var(--good);transition:width .25s}
   .hptext{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:11px;color:#e5e7eb;text-shadow:0 1px 0 #000}
 
-  /* EN行（1行固定）：左=技名+威力, 中=固定長バー, 右=ボタン */
-  .row{
-    display:grid;
-    grid-template-columns: auto var(--barW) auto; /* ← 中央列は完全固定長（3行同一） */
-    gap:10px; align-items:center; margin-top:10px;
-    min-height:34px;
-  }
-  .skillinfo{
-    font-size:13px;color:#e5e7eb;display:flex;align-items:center;gap:8px;
-    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
-    max-width: 42vw;
-  }
+  /* EN行（1行固定） */
+  .row{display:grid;grid-template-columns:auto var(--barW) auto;gap:10px;align-items:center;margin-top:10px;min-height:34px}
+  .skillinfo{font-size:13px;color:#e5e7eb;display:flex;align-items:center;gap:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:42vw}
   .dot{width:12px;height:12px;border-radius:3px;display:inline-block;flex:0 0 auto}
-  .ready{ font-size:11px; color:#fff; background:#16a34a; padding:2px 6px; border-radius:999px; margin-left:6px; display:none; }
-
-  .bar.en{ width:var(--barW); height:10px; }  /* 念のため幅を固定変数で明示 */
+  .ready{font-size:11px;color:#fff;background:#16a34a;padding:2px 6px;border-radius:999px;margin-left:6px;display:none}
+  .bar.en{width:var(--barW);height:10px}
   .filled{outline:2px solid #fff; outline-offset:-2px; box-shadow:0 0 10px 2px rgba(255,255,255,.5)}
-
-  /* 発動ボタン */
-  .btn{
-    padding:8px 10px;border-radius:8px;border:1px solid #4b5563;
-    background:var(--btn); color:var(--btn-txt); cursor:pointer; min-width:64px;
-    transition: box-shadow .2s, transform .1s, background .2s;
-  }
-  .btn:disabled{ opacity:.6; cursor:not-allowed; background:#30353c; color:#b7bec7; border-color:#454b55; }
-
-  /* READYになったボタンの「光る」表現 */
-  .btn.pulse{
-    box-shadow: 0 0 0 0 rgba(255,255,255,.8), 0 0 10px 2px currentColor;
-    animation: pulseGlow 1.2s ease-in-out infinite;
-    background: linear-gradient(180deg, #55607a, #2d3441);
-    border-color:#9aa2ad;
-  }
-  @keyframes pulseGlow{
-    0%   { box-shadow: 0 0 0 0 rgba(255,255,255,.8), 0 0 10px 2px rgba(255,255,255,.6); transform: translateZ(0) }
-    50%  { box-shadow: 0 0 20px 6px rgba(255,255,255,.35), 0 0 16px 4px rgba(255,255,255,.55); transform: translateZ(0) }
-    100% { box-shadow: 0 0 0 0 rgba(255,255,255,.0), 0 0 10px 2px rgba(255,255,255,.35); transform: translateZ(0) }
-  }
+  .btn{padding:8px 10px;border-radius:8px;border:1px solid #4b5563;background:var(--btn);color:var(--btn-txt);cursor:pointer;min-width:64px;transition:box-shadow .2s,transform .1s,background .2s}
+  .btn:disabled{opacity:.6;cursor:not-allowed;background:#30353c;color:#b7bec7;border-color:#454b55}
+  .btn.pulse{box-shadow:0 0 0 0 rgba(255,255,255,.8),0 0 10px 2px currentColor;animation:pulseGlow 1.2s ease-in-out infinite;background:linear-gradient(180deg,#55607a,#2d3441);border-color:#9aa2ad}
+  @keyframes pulseGlow{0%{box-shadow:0 0 0 0 rgba(255,255,255,.8),0 0 10px 2px rgba(255,255,255,.6)}
+  50%{box-shadow:0 0 20px 6px rgba(255,255,255,.35),0 0 16px 4px rgba(255,255,255,.55)}
+  100%{box-shadow:0 0 0 0 rgba(255,255,255,0),0 0 10px 2px rgba(255,255,255,.35)}}
 
   .hint{font-size:12px;color:var(--muted);margin-top:6px}
 
   /* 盤面（中央寄せ） */
-  #board{
-    margin:12px auto 0; /* ← 中央寄せ */
-    width: calc(6*var(--cell) + 5*var(--gap));
-    display:grid; grid-template-columns: repeat(6, var(--cell)); gap:var(--gap);
-    background:var(--panel); padding:var(--gap); border-radius:12px; position:relative;
-  }
-  .overlay{
-    position:absolute; inset:0; display:none; align-items:center; justify-content:center;
-    background:rgba(0,0,0,.55); border-radius:12px; font-size:24px; font-weight:800;
-    z-index: 9999; pointer-events: auto;
-  }
-  .cell{
-    width:var(--cell); height:var(--cell); border-radius:50%;
-    box-shadow: inset 0 -6px 0 rgba(0,0,0,.18);
-    cursor:pointer; position:relative; transition: transform .08s, box-shadow .12s;
-  }
-  .cell.red{ background:var(--red);}
-  .cell.blue{ background:var(--blue);}
-  .cell.yellow{ background:var(--yellow);}
-  .cell.gray{ background:var(--gray);}
-  .cell.selected{
-    outline:3px solid #fff; outline-offset:-3px;
-    box-shadow: 0 0 10px 2px rgba(255,255,255,.6), inset 0 -6px 0 rgba(0,0,0,.18);
-    transform: scale(1.06);
-  }
-  .shake{ animation:shake .18s linear 1; }
-  @keyframes shake{
-    0%{ transform: translateX(0) }
-    25%{ transform: translateX(-3px) }
-    50%{ transform: translateX(3px) }
-    75%{ transform: translateX(-2px) }
-    100%{ transform: translateX(0) }
-  }
+  #board{margin:12px auto 0;width:calc(6*var(--cell) + 5*var(--gap));display:grid;grid-template-columns:repeat(6,var(--cell));gap:var(--gap);background:var(--panel);padding:var(--gap);border-radius:12px;position:relative}
+  .overlay{position:absolute;inset:0;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.55);border-radius:12px;font-size:24px;font-weight:800;z-index:9999}
+  .cell{width:var(--cell);height:var(--cell);border-radius:50%;box-shadow:inset 0 -6px 0 rgba(0,0,0,.18);cursor:pointer;position:relative;transition:transform .08s,box-shadow .12s}
+  .cell.red{background:var(--red)} .cell.blue{background:var(--blue)} .cell.yellow{background:var(--yellow)} .cell.gray{background:var(--gray)}
+  .cell.selected{outline:3px solid #fff;outline-offset:-3px;box-shadow:0 0 10px 2px rgba(255,255,255,.6),inset 0 -6px 0 rgba(0,0,0,.18);transform:scale(1.06)}
+  .shake{animation:shake .18s linear 1}
+  @keyframes shake{0%{transform:translateX(0)}25%{transform:translateX(-3px)}50%{transform:translateX(3px)}75%{transform:translateX(-2px)}100%{transform:translateX(0)}}
 
-  /* 狭幅で段階縮小＆VS表記さらに小さく */
-  @media (max-width: 420px){
-    :root{ --cell:44px; --barW: clamp(150px, 48vw, 240px); }
-    .skillinfo{ font-size:12px; max-width:40vw; }
-    .e-mid{ font-size:14px; }
-  }
-  @media (max-width: 360px){
-    :root{ --cell:40px; --barW: clamp(140px, 50vw, 220px); }
-    .btn{ padding:6px 8px; min-width:56px; }
-    .e-mid{ font-size:13px; }
-  }
+  /* 狭幅微調整 */
+  @media (max-width:420px){:root{--cell:44px;--barW:clamp(150px,48vw,240px)}.skillinfo{font-size:12px;max-width:40vw}.e-mid{font-size:14px}}
+  @media (max-width:360px){:root{--cell:40px;--barW:clamp(140px,50vw,220px)}.btn{padding:6px 8px;min-width:56px}.e-mid{font-size:13px}}
 </style>
 </head>
 <body>
   <div id="wrap">
     <h1>
-      <span>Buzzy Academy – 微調整版</span>
+      <span>Buzzy Academy – データ駆動版</span>
       <button id="btn-reset" class="debug-btn" title="臨時デバッグ用：ゲームを即リセット">リセット</button>
     </h1>
+
+    <!-- 選択UI -->
+    <div class="cfg">
+      <select id="enemy-select" class="sel" title="敵キャラクターを選択"></select>
+      <select id="player-select" class="sel" title="プレイヤーを選択"></select>
+      <button id="apply-btn" class="debug-btn" title="選択を反映しリセット">反映</button>
+    </div>
 
     <!-- 時間バー -->
     <div class="legend">ステージ時間</div>
     <div class="bar" id="time-wrap">
-      <div id="time-fill" class="fill" style="background:#10b981; width:100%"></div>
+      <div id="time-fill" class="fill" style="background:#10b981;width:100%"></div>
       <span id="time-cap" class="cap"></span>
     </div>
 
-    <!-- 敵情報（左=属性 / 中=「敵名 VS プレイヤー名」 / 右=HP数値） -->
+    <!-- 敵情報 -->
     <div class="enemy-top">
       <div class="e-col">
         <span class="attr-dot" id="enemy-attr-dot"></span>
@@ -166,11 +115,12 @@
     <!-- 敵HPバー -->
     <div class="hpbar"><div id="ehp" class="hpfill"></div><div id="ehptext" class="hptext"></div></div>
 
-    <!-- EN：3行（各色1行固定・中央バーは固定長） -->
+    <!-- EN：3行（各色1行固定） -->
     <div class="row">
       <div class="skillinfo">
         <span class="dot" style="background:var(--red)"></span>
-        <span><b>パンチ</b>（<span id="rowpow-red"></span>）<span id="badge-red" class="ready">READY</span></span>
+        <span id="label-red"><b>パンチ</b>（<span id="rowpow-red"></span>）</span>
+        <span id="badge-red" class="ready">READY</span>
       </div>
       <div class="bar en" id="barwrap-red"><div id="bar-red" class="fill" style="background:var(--red)"></div></div>
       <button id="btn-red" class="btn" disabled>発動</button>
@@ -179,7 +129,8 @@
     <div class="row">
       <div class="skillinfo">
         <span class="dot" style="background:var(--blue)"></span>
-        <span><b>キック</b>（<span id="rowpow-blue"></span>）<span id="badge-blue" class="ready">READY</span></span>
+        <span id="label-blue"><b>キック</b>（<span id="rowpow-blue"></span>）</span>
+        <span id="badge-blue" class="ready">READY</span>
       </div>
       <div class="bar en" id="barwrap-blue"><div id="bar-blue" class="fill" style="background:var(--blue)"></div></div>
       <button id="btn-blue" class="btn" disabled>発動</button>
@@ -188,39 +139,88 @@
     <div class="row">
       <div class="skillinfo">
         <span class="dot" style="background:var(--yellow)"></span>
-        <span><b>つんつん</b>（<span id="rowpow-yellow"></span>）<span id="badge-yellow" class="ready">READY</span></span>
+        <span id="label-yellow"><b>つんつん</b>（<span id="rowpow-yellow"></span>）</span>
+        <span id="badge-yellow" class="ready">READY</span>
       </div>
       <div class="bar en" id="barwrap-yellow"><div id="bar-yellow" class="fill" style="background:var(--yellow)"></div></div>
       <button id="btn-yellow" class="btn" disabled>発動</button>
     </div>
 
-    <div class="hint">・READY時は発動ボタンが光ります。バー容器は3色とも同一長。盤面は中央寄せ。</div>
+    <div class="hint">・上のプルダウンで敵/プレイヤーを切替→「反映」または「リセット」で開始。</div>
 
     <!-- 盤面 -->
     <div id="board"><div id="overlay" class="overlay">TIME UP!</div></div>
   </div>
 
 <script>
-/* ====== 基本・時間 ====== */
+/* ====== 定数・ユーティリティ ====== */
 const ROWS=6, COLS=6;
 const ID = { RED:0, BLUE:1, YELLOW:2, GRAY:3 };
 const NAME_BY_ID = { 0:"RED", 1:"BLUE", 2:"YELLOW", 3:"GRAY" };
 const CLASS_BY_ID = { 0:"red", 1:"blue", 2:"yellow", 3:"gray" };
 
-const TIME_LIMIT_SECONDS = 60;
+const TIME_LIMIT_SECONDS = 60;               // ← ステージ時間（秒）
+const RPS_RATE = { win:1.2, draw:1.0, lose:0.7 }; // ← じゃんけん倍率
+
+const ATTR_LABEL = { RED:"赤 (グー)", BLUE:"青 (チョキ)", YELLOW:"黄 (パー)" };
+const beats=(a,b)=> (a==="RED"&&b==="BLUE")||(a==="BLUE"&&b==="YELLOW")||(a==="YELLOW"&&b==="RED");
+const rpsMul=(enemyAttr, skillColor)=> enemyAttr===skillColor? RPS_RATE.draw : (beats(skillColor, enemyAttr)? RPS_RATE.win : RPS_RATE.lose);
+
+/* ====== データ（ここを編集すれば増減可能） ====== */
+const ENEMIES = [
+  { id:"goo-boss", name:"あべこべ", attr:"RED",    maxHP:1000, imgSrc:"images/char1.png" },
+  { id:"scis",     name:"チョキ丸", attr:"BLUE",   maxHP:1400, imgSrc:"images/char1.png" },
+  { id:"hand",     name:"パーネ",   attr:"YELLOW", maxHP:1800, imgSrc:"images/char1.png" }
+];
+
+const PLAYERS = [
+  { id:"meg",  name:"めぐ",  skills:{
+      RED:{name:"パンチ",  power:50},
+      BLUE:{name:"キック", power:100},
+      YELLOW:{name:"つんつん", power:150}
+  }},
+  { id:"rio",  name:"りお",  skills:{
+      RED:{name:"火炎拳",  power:80},
+      BLUE:{name:"旋風脚", power:90},
+      YELLOW:{name:"光突き",power:120}
+  }},
+  { id:"buzzy",name:"バジィ",skills:{
+      RED:{name:"ハチパンチ", power:60},
+      BLUE:{name:"スラッシュ", power:110},
+      YELLOW:{name:"ニードル",  power:130}
+  }}
+];
+
+/* ====== 可変状態 ====== */
+let enemy = structuredClone(ENEMIES[0]);
+let player = structuredClone(PLAYERS[0]);
+const baseEnTarget = { RED:30, BLUE:30, YELLOW:30 }; // EN目標（色ごと）
 let timeLeft = TIME_LIMIT_SECONDS, timer=null, gameOver=false;
+let grid=[], firstPick=null, en={RED:0,BLUE:0,YELLOW:0}, busy=false;
+
+/* ====== セレクタへの反映 ====== */
+const enemySel  = document.getElementById('enemy-select');
+const playerSel = document.getElementById('player-select');
+const applyBtn  = document.getElementById('apply-btn');
+function populateSelectors(){
+  enemySel.innerHTML  = ENEMIES.map((e,i)=>`<option value="${i}">${e.name}（${ATTR_LABEL[e.attr]} / HP:${e.maxHP}）</option>`).join('');
+  playerSel.innerHTML = PLAYERS.map((p,i)=>`<option value="${i}">${p.name}</option>`).join('');
+  enemySel.value = ENEMIES.findIndex(e=>e.id===enemy.id);
+  playerSel.value = PLAYERS.findIndex(p=>p.id===player.id);
+}
+applyBtn.addEventListener('click', ()=>{
+  const ei = +enemySel.value, pi = +playerSel.value;
+  enemy  = structuredClone(ENEMIES[ei]);
+  player = structuredClone(PLAYERS[pi]);
+  resetGame();
+});
+
+/* ====== 時間周り ====== */
 function startTimer(){ stopTimer(); timer=setInterval(()=>{ if(gameOver) return; if(timeLeft>0){ timeLeft--; updateTimeBar(); if(timeLeft===0) onGameOver(); } },1000); }
 function stopTimer(){ if(timer){ clearInterval(timer); timer=null; } }
 function updateTimeBar(){ const pct=(timeLeft/TIME_LIMIT_SECONDS*100).toFixed(0)+'%'; document.getElementById('time-fill').style.width=pct; document.getElementById('time-cap').textContent=`残り: ${timeLeft}s / ${TIME_LIMIT_SECONDS}s`; }
 
-/* ====== 敵・プレイヤー・RPS倍率 ====== */
-const ATTR_LABEL = { RED:"赤 (グー)", BLUE:"青 (チョキ)", YELLOW:"黄 (パー)" };
-const player = { name:"めぐ", skills:{ RED:{name:"パンチ",power:50}, BLUE:{name:"キック",power:100}, YELLOW:{name:"つんつん",power:150} } };
-const enemy = { name:"あべこべ", attr:"RED", maxHP:500, hp:500, imgSrc:"images/char1.png" };
-const RPS_RATE = { win:1.2, draw:1.0, lose:0.7 };
-const beats=(a,b)=> (a==="RED"&&b==="BLUE")||(a==="BLUE"&&b==="YELLOW")||(a==="YELLOW"&&b==="RED");
-const rpsMul=(enemyAttr, skillColor)=> enemyAttr===skillColor? RPS_RATE.draw : (beats(skillColor, enemyAttr)? RPS_RATE.win : RPS_RATE.lose);
-
+/* ====== 表示更新 ====== */
 function renderEnemyHeader(){
   document.getElementById('enemy-name').textContent = `${enemy.name} VS ${player.name}`;
   document.getElementById('enemy-hpnum').textContent=enemy.hp;
@@ -234,26 +234,49 @@ function updateEnemyHPBar(){
   document.getElementById('ehptext').textContent=`${enemy.hp}/${enemy.maxHP}`;
   document.getElementById('enemy-hpnum').textContent=enemy.hp;
 }
-function renderPlayerSkillPowers(){
-  document.getElementById('rowpow-red').textContent   = player.skills.RED.power;
-  document.getElementById('rowpow-blue').textContent  = player.skills.BLUE.power;
-  document.getElementById('rowpow-yellow').textContent= player.skills.YELLOW.power;
+function renderPlayerLabels(){
+  // スキル名＋威力
+  document.getElementById('label-red').innerHTML    = `<b>${player.skills.RED.name}</b>（<span id="rowpow-red">${player.skills.RED.power}</span>）`;
+  document.getElementById('label-blue').innerHTML   = `<b>${player.skills.BLUE.name}</b>（<span id="rowpow-blue">${player.skills.BLUE.power}</span>）`;
+  document.getElementById('label-yellow').innerHTML = `<b>${player.skills.YELLOW.name}</b>（<span id="rowpow-yellow">${player.skills.YELLOW.power}</span>）`;
 }
 
 /* ====== EN関連 ====== */
-const baseEnTarget = { RED:30, BLUE:30, YELLOW:30 };
 function getRequiredEN(colorName){ return baseEnTarget[colorName]; }
-const baseGainMult={3:1.0,4:1.5,5:2.0}; const gainChain=(chain)=>1+Math.min(chain-1,4)*0.05;
+const baseGainMult={3:1.0,4:1.5,5:2.0};
+const gainChain=(chain)=>1+Math.min(chain-1,4)*0.05;
 function getGainAmount(colorName, matchedCount, chain=1){
   if(colorName==="GRAY")return 0;
   const base=matchedCount*(matchedCount>=5?baseGainMult[5]:(baseGainMult[matchedCount]||1.0));
   return Math.max(0, Math.round(base*gainChain(chain)));
 }
+function updateBars(){
+  const needR=getRequiredEN("RED"), needB=getRequiredEN("BLUE"), needY=getRequiredEN("YELLOW");
+  const pct=(cur,need)=> Math.max(0,Math.min(100,(cur/need*100))).toFixed(0)+'%';
+  document.getElementById('bar-red').style.width=pct(en.RED,needR);
+  document.getElementById('bar-blue').style.width=pct(en.BLUE,needB);
+  document.getElementById('bar-yellow').style.width=pct(en.YELLOW,needY);
 
-/* ====== 盤面・状態 ====== */
-let grid=[], firstPick=null, en={RED:0,BLUE:0,YELLOW:0}, busy=false;
+  const rReady=en.RED>=needR, bReady=en.BLUE>=needB, yReady=en.YELLOW>=needY;
+  toggleReady('red', rReady); toggleReady('blue', bReady); toggleReady('yellow', yReady);
+  setButtonEnabled('red', rReady && !gameOver);
+  setButtonEnabled('blue', bReady && !gameOver);
+  setButtonEnabled('yellow', yReady && !gameOver);
+}
+function toggleReady(colorKey,on){
+  const badge=document.getElementById(`badge-${colorKey}`);
+  const wrap=document.getElementById(`barwrap-${colorKey}`);
+  badge.style.display=on?'inline-block':'none';
+  wrap.classList.toggle('filled',on);
+}
+function setButtonEnabled(colorKey,on){
+  const btn=document.getElementById(`btn-${colorKey}`);
+  btn.disabled=!on;
+  btn.classList.toggle('pulse', on); // READY時に光る
+}
+
+/* ====== 盤面ロジック ====== */
 const board=document.getElementById('board');
-
 function initBoard(){
   grid=Array.from({length:ROWS},()=>Array(COLS).fill(0));
   for(let r=0;r<ROWS;r++){ for(let c=0;c<COLS;c++){
@@ -271,14 +294,6 @@ function renderAll(){
     board.appendChild(div);
   } }
 }
-function resetGame(){
-  enemy.hp=enemy.maxHP; gameOver=false; busy=false; firstPick=null; en={RED:0,BLUE:0,YELLOW:0};
-  timeLeft=TIME_LIMIT_SECONDS; updateTimeBar();
-  renderEnemyHeader(); updateEnemyHPBar(); initBoard(); renderAll(); updateBars();
-  hideOverlay(); startTimer();
-}
-
-/* ====== 入力・消去 ====== */
 function onCellClick(e){
   if(busy||gameOver)return;
   const r=+e.currentTarget.dataset.r, c=+e.currentTarget.dataset.c;
@@ -321,35 +336,7 @@ function refill(){ for(let c=0;c<COLS;c++){ for(let r=0;r<ROWS;r++){ if(grid[r][
 function randColor(){ return Math.floor(Math.random()*4); }
 function causesImmediateMatch(r,c,color){ if(c>=2&&grid[r][c-1]===color&&grid[r][c-2]===color)return true; if(r>=2&&grid[r-1][c]===color&&grid[r-2][c]===color)return true; return false; }
 
-/* ====== ENバー・READY・ボタン ====== */
-function updateBars(){
-  const needR=getRequiredEN("RED"), needB=getRequiredEN("BLUE"), needY=getRequiredEN("YELLOW");
-  const pct=(cur,need)=> Math.max(0,Math.min(100,(cur/need*100))).toFixed(0)+'%';
-  document.getElementById('bar-red').style.width=pct(en.RED,needR);
-  document.getElementById('bar-blue').style.width=pct(en.BLUE,needB);
-  document.getElementById('bar-yellow').style.width=pct(en.YELLOW,needY);
-
-  const rReady=en.RED>=needR, bReady=en.BLUE>=needB, yReady=en.YELLOW>=needY;
-  toggleReady('red', rReady); toggleReady('blue', bReady); toggleReady('yellow', yReady);
-
-  // ボタンの有効/無効と「発光」クラス付与
-  setButtonEnabled('red', rReady && !gameOver);
-  setButtonEnabled('blue', bReady && !gameOver);
-  setButtonEnabled('yellow', yReady && !gameOver);
-}
-function toggleReady(colorKey,on){
-  const badge=document.getElementById(`badge-${colorKey}`);
-  const wrap=document.getElementById(`barwrap-${colorKey}`);
-  badge.style.display=on?'inline-block':'none';
-  wrap.classList.toggle('filled',on);
-}
-function setButtonEnabled(colorKey,on){
-  const btn=document.getElementById(`btn-${colorKey}`);
-  btn.disabled=!on;
-  btn.classList.toggle('pulse', on); // ← READY時に光らせる
-}
-
-/* ====== 発動（威力×RPS倍率） ====== */
+/* ====== スキル発動 ====== */
 document.getElementById('btn-red').addEventListener('click', ()=> useSkill("RED"));
 document.getElementById('btn-blue').addEventListener('click', ()=> useSkill("BLUE"));
 document.getElementById('btn-yellow').addEventListener('click', ()=> useSkill("YELLOW"));
@@ -370,16 +357,22 @@ function showOverlay(text){ const o=document.getElementById('overlay'); o.textCo
 function hideOverlay(){ document.getElementById('overlay').style.display='none'; }
 document.getElementById('btn-reset').addEventListener('click', resetGame);
 
-/* ====== 小物・起動 ====== */
+/* ====== 雑多 ====== */
 function sleep(ms){ return new Promise(res=>setTimeout(res,ms)); }
+function resetGame(){
+  enemy.hp = enemy.maxHP;
+  gameOver=false; busy=false; firstPick=null; en={RED:0,BLUE:0,YELLOW:0};
+  timeLeft=TIME_LIMIT_SECONDS; updateTimeBar();
+  renderEnemyHeader(); updateEnemyHPBar(); renderPlayerLabels();
+  initBoard(); renderAll(); updateBars();
+  hideOverlay(); startTimer();
+}
+
+/* ====== 起動 ====== */
 (function boot(){
-  renderEnemyHeader(); updateEnemyHPBar();
-  renderPlayerSkillPowers();
-  initBoard(); renderAll();
-  updateBars(); updateTimeBar();
-  startTimer();
+  populateSelectors();
+  resetGame();
 })();
 </script>
 </body>
 </html>
-
