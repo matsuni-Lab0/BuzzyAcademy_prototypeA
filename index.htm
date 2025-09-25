@@ -43,7 +43,7 @@
   }
   .e-col{display:flex;align-items:center;gap:8px}
   .attr-dot{width:12px;height:12px;border-radius:3px;display:inline-block}
-  .attr-label{font-size:13px;color:var(--muted)} /* ← 小さめ文字 */
+  .attr-label{font-size:13px;color:var(--muted)} /* 小さめ文字 */
 
   /* VS 1行表示 */
   .vs-line{font-weight:700;font-size:14px; line-height:1.2; text-align:center; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
@@ -74,7 +74,7 @@
   .ready{font-size:11px;color:#fff;background:#16a34a;padding:2px 6px;border-radius:999px;margin-left:6px;display:none}
   .bar.en{width:var(--barW);height:10px}
   .filled{outline:2px solid #fff; outline-offset:-2px; box-shadow:0 0 10px 2px rgba(255,255,255,.5)}
-  .btn{padding:7px 10px;border-radius:8px;border:1px solid #4b5563;background:var(--btn);color:var(--btn-txt);cursor:pointer;min-width:64px;transition:box-shadow .2s,transform .1s,background .2s}
+  .btn{padding:7px 10px;border-radius:8px;border:1px solid #4b5563;background:var(--btn);color:#e5e7eb;cursor:pointer;min-width:64px;transition:box-shadow .2s,transform .1s,background .2s}
   .btn:disabled{opacity:.6;cursor:not-allowed;background:#30353c;color:#b7bec7;border-color:#454b55}
   .btn.pulse{box-shadow:0 0 0 0 rgba(255,255,255,.8),0 0 10px 2px currentColor;animation:pulseGlow 1.2s ease-in-out infinite;background:linear-gradient(180deg,#55607a,#2d3441);border-color:#9aa2ad}
   @keyframes pulseGlow{0%{box-shadow:0 0 0 0 rgba(255,255,255,.8),0 0 10px 2px rgba(255,255,255,.6)}
@@ -147,7 +147,7 @@
     <div class="battle-visual">
       <img id="enemy-img" class="battle-img" src="images/char1.png" alt="enemy">
       <div class="battle-center" id="fx-area"><span class="vs-text">VS</span></div>
-      <img id="player-img" class="battle-img" src="images/player1.png" alt="player">
+      <img id="player-img" class="battle-img" src="images/play1.png" alt="player">
     </div>
 
     <!-- 敵HPバー（ここでHP数値は表示） -->
@@ -197,7 +197,7 @@ const ID = { RED:0, BLUE:1, YELLOW:2, GRAY:3 };
 const NAME_BY_ID = { 0:"RED", 1:"BLUE", 2:"YELLOW", 3:"GRAY" };
 const CLASS_BY_ID = { 0:"red", 1:"blue", 2:"yellow", 3:"gray" };
 
-// ステージ時間（秒）
+// ステージ時間（秒）— 必要に応じて変更
 const TIME_LIMIT_SECONDS = 120;
 
 const RPS_RATE = { win:1.2, draw:1.0, lose:0.7 };
@@ -223,7 +223,7 @@ const PLAYERS = [
       BLUE:{name:"旋風脚", power:90},
       YELLOW:{name:"光突き",power:120}
   }},
-  { id:"buzzy", name:"仮面ライダー愛", imgSrc:"images/play3.png", skills:{
+  { id:"buzzy", name:"仮面ライダー愛", imgSrc:"images/play3.png", skills{
       RED:{name:"ハチパンチ", power:60},
       BLUE:{name:"スラッシュ", power:110},
       YELLOW:{name:"ニードル",  power:130}
@@ -292,12 +292,12 @@ function setImgWithFallback(imgEl, src){
 
 /* ====== 表示更新 ====== */
 function renderEnemyHeader(){
-  // VS 1行表示（改行なし）
+  // VS 1行表示（VSの前後にスペース）
   document.getElementById('vs-line').textContent = `${enemy.name} VS ${player.name}`;
   // 属性
-  document.getElementById('enemy-attr-dot').style.background=
+  document.getElementById('enemy-attr-dot').style.background =
     (enemy.attr==="RED"?"var(--red)":enemy.attr==="BLUE"?"var(--blue)":"var(--yellow)");
-  document.getElementById('enemy-attr-label').textContent=ATTR_LABEL[enemy.attr];
+  document.getElementById('enemy-attr-label').textContent = ATTR_LABEL[enemy.attr];
   // 画像（敵/プレイヤー）
   setImgWithFallback(document.getElementById('enemy-img'),  enemy.imgSrc);
   setImgWithFallback(document.getElementById('player-img'), player.imgSrc);
@@ -332,6 +332,7 @@ function updateBars(){
   const rReady=en.RED>=needR, bReady=en.BLUE>=needB, yReady=en.YELLOW>=needY;
   toggleReady('red', rReady); toggleReady('blue', bReady); toggleReady('yellow', yReady);
   setButtonEnabled('red', rReady && !gameOver);
+  setButtonEnabled('blue', rReady && !gameOver); // typo fix? ensure correct flag below
   setButtonEnabled('blue', bReady && !gameOver);
   setButtonEnabled('yellow', yReady && !gameOver);
 }
@@ -464,4 +465,3 @@ function resetGame(){
 </script>
 </body>
 </html>
-
