@@ -117,7 +117,7 @@
     </details>
 
     <!-- 時間バー -->
-    <div class="legend">ステージ時間</div>
+    <div class="legend"><span id="time-legend">ステージ時間：</span></div>
     <div class="bar" id="time-wrap">
       <div id="time-fill" class="fill" style="background:#10b981;width:100%"></div>
       <span id="time-cap" class="cap"></span>
@@ -190,7 +190,9 @@ const ID = { RED:0, BLUE:1, YELLOW:2, GRAY:3 };
 const NAME_BY_ID = { 0:"RED", 1:"BLUE", 2:"YELLOW", 3:"GRAY" };
 const CLASS_BY_ID = { 0:"red", 1:"blue", 2:"yellow", 3:"gray" };
 
-const TIME_LIMIT_SECONDS = 90;               // ステージ時間（秒）
+// ★ ステージ時間（秒）— ここを変えるだけでOK
+const TIME_LIMIT_SECONDS = 60;
+
 const RPS_RATE = { win:1.2, draw:1.0, lose:0.7 }; // じゃんけん倍率
 const ATTR_LABEL = { RED:"赤 (グー)", BLUE:"青 (チョキ)", YELLOW:"黄 (パー)" };
 const beats=(a,b)=> (a==="RED"&&b==="BLUE")||(a==="BLUE"&&b==="YELLOW")||(a==="YELLOW"&&b==="RED");
@@ -198,7 +200,7 @@ const rpsMul=(enemyAttr, skillColor)=> enemyAttr===skillColor? RPS_RATE.draw : (
 
 /* ====== データ（ここを編集すれば増減可能） ====== */
 const ENEMIES = [
-  { id:"goo-boss", name:"あべこべ",     attr:"RED",    maxHP:500, imgSrc:"images/char1.png" },
+  { id:"goo-boss", name:"あべこべ",     attr:"RED",    maxHP:500,  imgSrc:"images/char1.png" },
   { id:"scis",     name:"仮面松にぃ",   attr:"BLUE",   maxHP:1000, imgSrc:"images/char2.png" },
   { id:"hand",     name:"スーツ松兄",   attr:"YELLOW", maxHP:1200, imgSrc:"images/char3.png" }
 ];
@@ -250,9 +252,26 @@ applyBtn.addEventListener('click', ()=>{
 });
 
 /* ====== 時間周り ====== */
-function startTimer(){ stopTimer(); timer=setInterval(()=>{ if(gameOver) return; if(timeLeft>0){ timeLeft--; updateTimeBar(); if(timeLeft===0) onGameOver(); } },1000); }
+function renderTimeLegend(){
+  document.getElementById('time-legend').textContent = `ステージ時間：${TIME_LIMIT_SECONDS}秒`;
+}
+function startTimer(){
+  stopTimer();
+  timer=setInterval(()=>{
+    if(gameOver) return;
+    if(timeLeft>0){
+      timeLeft--;
+      updateTimeBar();
+      if(timeLeft===0) onGameOver();
+    }
+  },1000);
+}
 function stopTimer(){ if(timer){ clearInterval(timer); timer=null; } }
-function updateTimeBar(){ const pct=(timeLeft/TIME_LIMIT_SECONDS*100).toFixed(0)+'%'; document.getElementById('time-fill').style.width=pct; document.getElementById('time-cap').textContent=`残り: ${timeLeft}s / ${TIME_LIMIT_SECONDS}s`; }
+function updateTimeBar(){
+  const pct=(timeLeft/TIME_LIMIT_SECONDS*100).toFixed(0)+'%';
+  document.getElementById('time-fill').style.width=pct;
+  document.getElementById('time-cap').textContent=`残り: ${timeLeft}s / ${TIME_LIMIT_SECONDS}s`;
+}
 
 /* ====== 表示更新 ====== */
 function renderEnemyHeader(){
@@ -347,19 +366,15 @@ async function trySwap(r1,c1,r2,c2){
     renderAll();
     const matches = findMatches();
     if(matches.set.size===0){
-      // マッチしなければ元に戻す
       swapInData(r1,c1,r2,c2);
       renderAll();
     }else{
-      // マッチあり：消去→落下→補充→連鎖
       await resolveBoard(matches, 1);
     }
   } finally {
-    // どんなケースでも必ず解除
     busy = false;
   }
 }
-
 function swapInData(r1,c1,r2,c2){ const t=grid[r1][c1]; grid[r1][c1]=grid[r2][c2]; grid[r2][c2]=t; }
 function findMatches(){
   const toClear=new Set();
@@ -409,11 +424,13 @@ function hideOverlay(){ document.getElementById('overlay').style.display='none';
 document.getElementById('btn-reset').addEventListener('click', resetGame);
 
 /* ====== 雑多 ====== */
-function sleep(ms){ return new Promise(resolve => setTimeout(resolve, ms)); } // not used here
+function sleep(ms){ return new Promise(resolve => setTimeout(resolve, ms)); }
 function resetGame(){
   enemy.hp = enemy.maxHP;
   gameOver=false; busy=false; firstPick=null; en={RED:0,BLUE:0,YELLOW:0};
-  timeLeft=TIME_LIMIT_SECONDS; updateTimeBar();
+  timeLeft=TIME_LIMIT_SECONDS;
+  renderTimeLegend();                 // ★ ここで時間ラベルも更新
+  updateTimeBar();
   renderEnemyHeader(); updateEnemyHPBar(); renderPlayerLabels();
   initBoard(); renderAll(); updateBars();
   hideOverlay(); startTimer();
@@ -430,6 +447,3 @@ function resetGame(){
 </script>
 </body>
 </html>
-
-
-
