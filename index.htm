@@ -7,7 +7,7 @@
 <style>
   :root{
     --cell:48px; --gap:6px;
-    --barW: clamp(150px, 42vw, 250px); /* 少し短め固定：3行とも同一 */
+    --barW: clamp(150px, 42vw, 250px);
     --bg:#0f172a; --panel:#111827; --muted:#9ca3af;
     --red:#ef4444; --blue:#3b82f6; --yellow:#f59e0b; --gray:#6b7280;
     --bar-bg:#1f2937; --btn:#374151; --btn-txt:#e5e7eb; --good:#10b981;
@@ -35,25 +35,34 @@
   .fill{height:100%;width:0%;transition:width .25s}
   .cap{position:absolute;right:6px;top:-18px;font-size:11px;color:var(--muted)}
 
-  /* 敵情報 */
-  .enemy-top{display:grid;grid-template-columns:1fr 1fr 1fr;align-items:center;gap:6px;margin-top:8px}
-  .e-col{display:flex;align-items:center;gap:8px;justify-content:flex-start}
-  .e-mid{justify-content:center;font-weight:700;font-size:14px; line-height:1.2; text-align:center}
-  .e-right{justify-content:flex-end}
-  .attr-dot{width:12px;height:12px;border-radius:3px;display:inline-block}
-
-  /* VS 2行表示（敵名 VS / 改行 / プレイヤー名） */
-  .vs-wrap{display:flex; flex-direction:column; align-items:center; justify-content:center}
-  .vs-top{white-space:nowrap}
-  .vs-bot{white-space:nowrap; opacity:.9; font-weight:600}
-
-  .enemy-img-wrap{display:flex;justify-content:center;align-items:center;margin-top:6px}
-  .enemy-img{
-    width:100%; max-width:440px; height:auto; max-height:100px;
-    object-fit:contain; border-radius:12px;
-    background:#ffffff; border:1px solid #e5e7eb;
-    display:block; padding:6px;
+  /* 敵情報（HPはここに出さない） */
+  .enemy-top{
+    display:grid;
+    grid-template-columns:auto 1fr; /* 左：属性／右：VS行（1行） */
+    align-items:center; gap:8px; margin-top:8px
   }
+  .e-col{display:flex;align-items:center;gap:8px}
+  .attr-dot{width:12px;height:12px;border-radius:3px;display:inline-block}
+  .attr-label{font-size:13px;color:var(--muted)} /* ← 小さめ文字 */
+
+  /* VS 1行表示 */
+  .vs-line{font-weight:700;font-size:14px; line-height:1.2; text-align:center; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+
+  /* 画像枠（3分割：敵 / 中央VS(エフェクト) / プレイヤー） */
+  .battle-visual{
+    display:grid; grid-template-columns:1fr auto 1fr; align-items:center;
+    gap:8px; margin-top:8px;
+    background:#ffffff; border:1px solid #e5e7eb; border-radius:12px; padding:6px;
+  }
+  .battle-img{
+    width:100%; max-width:210px; height:auto; max-height:100px; object-fit:contain; display:block;
+    background:#fff; border-radius:8px;
+  }
+  .battle-center{
+    display:flex; align-items:center; justify-content:center; min-width:40px; padding:0 6px;
+  }
+  .vs-text{color:#111827; font-weight:800; font-size:20px; letter-spacing:1px}
+
   .hpbar{height:10px;background:#334155;border-radius:8px;overflow:hidden;position:relative;margin-top:6px}
   .hpfill{height:100%;width:100%;background:var(--good);transition:width .25s}
   .hptext{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:11px;color:#e5e7eb;text-shadow:0 1px 0 #000}
@@ -83,18 +92,20 @@
   .shake{animation:shake .18s linear 1}
   @keyframes shake{0%{transform:translateX(0)}25%{transform:translateX(-3px)}50%{transform:translateX(3px)}75%{transform:translateX(-2px)}100%{transform:translateX(0)}}
 
-  /* 狭幅でさらに圧縮：設定閉/画像＆盤面縮小、VS字さらに小さく */
+  /* 狭幅でさらに圧縮 */
   @media (max-width: 420px){
     :root{ --cell:42px; --barW: clamp(140px, 48vw, 220px); }
     #wrap{padding:8px}
-    .enemy-img{max-height:90px}
-    .e-mid{font-size:13px}
+    .battle-img{max-height:90px}
+    .vs-text{font-size:18px}
+    .vs-line{font-size:13px}
   }
   @media (max-width: 360px){
     :root{ --cell:38px; --barW: clamp(130px, 50vw, 200px); }
     .btn{padding:6px 8px; min-width:56px}
-    .enemy-img{max-height:80px}
-    .e-mid{font-size:12px}
+    .battle-img{max-height:80px}
+    .vs-text{font-size:16px}
+    .vs-line{font-size:12px}
   }
 </style>
 </head>
@@ -123,27 +134,23 @@
       <span id="time-cap" class="cap"></span>
     </div>
 
-    <!-- 敵情報 -->
+    <!-- 属性 / VS（1行・HPなし） -->
     <div class="enemy-top">
       <div class="e-col">
         <span class="attr-dot" id="enemy-attr-dot"></span>
-        <span id="enemy-attr-label" class="small"></span>
+        <span id="enemy-attr-label" class="attr-label"></span>
       </div>
-      <div class="e-col e-mid">
-        <div class="vs-wrap">
-          <div class="vs-top" id="vs-top">あべこべ VS</div>
-          <div class="vs-bot" id="vs-bot">めぐ</div>
-        </div>
-      </div>
-      <div class="e-col e-right">HP: <span id="enemy-hpnum">1000</span></div>
+      <div class="vs-line" id="vs-line">あべこべ VS めぐ</div>
     </div>
 
-    <!-- 敵画像（白背景フレーム） -->
-    <div class="enemy-img-wrap">
-      <img id="enemy-img" class="enemy-img" src="images/char1.png" alt="enemy">
+    <!-- 画像枠：左=敵 / 中央=VS(エフェクト用) / 右=プレイヤー -->
+    <div class="battle-visual">
+      <img id="enemy-img" class="battle-img" src="images/char1.png" alt="enemy">
+      <div class="battle-center" id="fx-area"><span class="vs-text">VS</span></div>
+      <img id="player-img" class="battle-img" src="images/player1.png" alt="player">
     </div>
 
-    <!-- 敵HPバー -->
+    <!-- 敵HPバー（ここでHP数値は表示） -->
     <div class="hpbar"><div id="ehp" class="hpfill"></div><div id="ehptext" class="hptext"></div></div>
 
     <!-- EN：3行（各色1行固定） -->
@@ -190,15 +197,15 @@ const ID = { RED:0, BLUE:1, YELLOW:2, GRAY:3 };
 const NAME_BY_ID = { 0:"RED", 1:"BLUE", 2:"YELLOW", 3:"GRAY" };
 const CLASS_BY_ID = { 0:"red", 1:"blue", 2:"yellow", 3:"gray" };
 
-// ★ ステージ時間（秒）— ここを変えるだけでOK
-const TIME_LIMIT_SECONDS = 90;
+// ステージ時間（秒）
+const TIME_LIMIT_SECONDS = 60;
 
-const RPS_RATE = { win:1.2, draw:1.0, lose:0.7 }; // じゃんけん倍率
+const RPS_RATE = { win:1.2, draw:1.0, lose:0.7 };
 const ATTR_LABEL = { RED:"赤 (グー)", BLUE:"青 (チョキ)", YELLOW:"黄 (パー)" };
 const beats=(a,b)=> (a==="RED"&&b==="BLUE")||(a==="BLUE"&&b==="YELLOW")||(a==="YELLOW"&&b==="RED");
 const rpsMul=(enemyAttr, skillColor)=> enemyAttr===skillColor? RPS_RATE.draw : (beats(skillColor, enemyAttr)? RPS_RATE.win : RPS_RATE.lose);
 
-/* ====== データ（ここを編集すれば増減可能） ====== */
+/* ====== データ ====== */
 const ENEMIES = [
   { id:"goo-boss", name:"あべこべ",     attr:"RED",    maxHP:500,  imgSrc:"images/char1.png" },
   { id:"scis",     name:"仮面松にぃ",   attr:"BLUE",   maxHP:1000, imgSrc:"images/char2.png" },
@@ -206,17 +213,17 @@ const ENEMIES = [
 ];
 
 const PLAYERS = [
-  { id:"meg",   name:"めぐ",   skills:{
+  { id:"meg",   name:"めぐ",   imgSrc:"images/player1.png", skills:{
       RED:{name:"パンチ",  power:50},
       BLUE:{name:"キック", power:100},
       YELLOW:{name:"つんつん", power:150}
   }},
-  { id:"rio",   name:"Gジェネ好きめぐみん", skills:{
+  { id:"rio",   name:"Gジェネ好きめぐみん", imgSrc:"images/player2.png", skills:{
       RED:{name:"火炎拳",  power:80},
       BLUE:{name:"旋風脚", power:90},
       YELLOW:{name:"光突き",power:120}
   }},
-  { id:"buzzy", name:"仮面ライダー愛", skills:{
+  { id:"buzzy", name:"仮面ライダー愛", imgSrc:"images/player3.png", skills:{
       RED:{name:"ハチパンチ", power:60},
       BLUE:{name:"スラッシュ", power:110},
       YELLOW:{name:"ニードル",  power:130}
@@ -226,7 +233,7 @@ const PLAYERS = [
 /* ====== 可変状態 ====== */
 let enemy = structuredClone(ENEMIES[0]);
 let player = structuredClone(PLAYERS[0]);
-const baseEnTarget = { RED:30, BLUE:30, YELLOW:30 }; // EN目標（色ごと）
+const baseEnTarget = { RED:30, BLUE:30, YELLOW:30 };
 let timeLeft = TIME_LIMIT_SECONDS, timer=null, gameOver=false;
 let grid=[], firstPick=null, en={RED:0,BLUE:0,YELLOW:0}, busy=false;
 
@@ -235,7 +242,7 @@ const enemySel  = document.getElementById('enemy-select');
 const playerSel = document.getElementById('player-select');
 const applyBtn  = document.getElementById('apply-btn');
 function populateSelectors(){
-  // 敵：名前のみ表示（属性・HPは非表示）
+  // 敵：名前のみ表示
   enemySel.innerHTML  = ENEMIES.map((e,i)=>`<option value="${i}">${e.name}</option>`).join('');
   playerSel.innerHTML = PLAYERS.map((p,i)=>`<option value="${i}">${p.name}</option>`).join('');
   enemySel.value = ENEMIES.findIndex(e=>e.id===enemy.id);
@@ -246,7 +253,6 @@ applyBtn.addEventListener('click', ()=>{
   enemy  = structuredClone(ENEMIES[ei]);
   player = structuredClone(PLAYERS[pi]);
   resetGame();
-  // スマホでは反映後に自動で設定を閉じ、画面内に収める
   const cfg = document.getElementById('cfgBox');
   if(window.matchMedia('(max-width: 420px)').matches) cfg.open = false;
 });
@@ -273,21 +279,33 @@ function updateTimeBar(){
   document.getElementById('time-cap').textContent=`残り: ${timeLeft}s / ${TIME_LIMIT_SECONDS}s`;
 }
 
+/* ====== 画像プレースホルダ ====== */
+function setImgWithFallback(imgEl, src){
+  const placeholder = 'data:image/svg+xml;utf8,' +
+    encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="240" height="120">
+      <rect width="100%" height="100%" fill="#f3f4f6"/>
+      <text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="#9ca3af" font-family="Arial" font-size="16">NO IMAGE</text>
+    </svg>`);
+  imgEl.onerror = ()=>{ imgEl.onerror=null; imgEl.src = placeholder; };
+  imgEl.src = src || placeholder;
+}
+
 /* ====== 表示更新 ====== */
 function renderEnemyHeader(){
-  // VS 2行表示
-  document.getElementById('vs-top').textContent = `${enemy.name} VS`;
-  document.getElementById('vs-bot').textContent = `${player.name}`;
-  document.getElementById('enemy-hpnum').textContent=enemy.hp;
-  document.getElementById('enemy-attr-dot').style.background=(enemy.attr==="RED"?"var(--red)":enemy.attr==="BLUE"?"var(--blue)":"var(--yellow)");
+  // VS 1行表示（改行なし）
+  document.getElementById('vs-line').textContent = `${enemy.name} VS ${player.name}`;
+  // 属性
+  document.getElementById('enemy-attr-dot').style.background=
+    (enemy.attr==="RED"?"var(--red)":enemy.attr==="BLUE"?"var(--blue)":"var(--yellow)");
   document.getElementById('enemy-attr-label').textContent=ATTR_LABEL[enemy.attr];
-  document.getElementById('enemy-img').src = enemy.imgSrc;
+  // 画像（敵/プレイヤー）
+  setImgWithFallback(document.getElementById('enemy-img'),  enemy.imgSrc);
+  setImgWithFallback(document.getElementById('player-img'), player.imgSrc);
 }
 function updateEnemyHPBar(){
   const pct=(enemy.hp/enemy.maxHP*100).toFixed(0)+'%';
   document.getElementById('ehp').style.width=pct;
   document.getElementById('ehptext').textContent=`${enemy.hp}/${enemy.maxHP}`;
-  document.getElementById('enemy-hpnum').textContent=enemy.hp;
 }
 function renderPlayerLabels(){
   document.getElementById('label-red').innerHTML    = `<b>${player.skills.RED.name}</b>（<span id="rowpow-red">${player.skills.RED.power}</span>）`;
@@ -429,7 +447,7 @@ function resetGame(){
   enemy.hp = enemy.maxHP;
   gameOver=false; busy=false; firstPick=null; en={RED:0,BLUE:0,YELLOW:0};
   timeLeft=TIME_LIMIT_SECONDS;
-  renderTimeLegend();                 // ★ ここで時間ラベルも更新
+  renderTimeLegend();
   updateTimeBar();
   renderEnemyHeader(); updateEnemyHPBar(); renderPlayerLabels();
   initBoard(); renderAll(); updateBars();
@@ -439,7 +457,6 @@ function resetGame(){
 /* ====== 起動 ====== */
 (function boot(){
   populateSelectors();
-  // スマホは初期状態で設定を閉じておく
   const cfg = document.getElementById('cfgBox');
   if(window.matchMedia('(max-width: 420px)').matches) cfg.open = false;
   resetGame();
@@ -447,4 +464,3 @@ function resetGame(){
 </script>
 </body>
 </html>
-
