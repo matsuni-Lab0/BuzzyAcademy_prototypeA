@@ -190,7 +190,7 @@ const ID = { RED:0, BLUE:1, YELLOW:2, GRAY:3 };
 const NAME_BY_ID = { 0:"RED", 1:"BLUE", 2:"YELLOW", 3:"GRAY" };
 const CLASS_BY_ID = { 0:"red", 1:"blue", 2:"yellow", 3:"gray" };
 
-const TIME_LIMIT_SECONDS = 60;               // ステージ時間（秒）
+const TIME_LIMIT_SECONDS = 90;               // ステージ時間（秒）
 const RPS_RATE = { win:1.2, draw:1.0, lose:0.7 }; // じゃんけん倍率
 const ATTR_LABEL = { RED:"赤 (グー)", BLUE:"青 (チョキ)", YELLOW:"黄 (パー)" };
 const beats=(a,b)=> (a==="RED"&&b==="BLUE")||(a==="BLUE"&&b==="YELLOW")||(a==="YELLOW"&&b==="RED");
@@ -430,5 +430,6 @@ function resetGame(){
 </script>
 </body>
 </html>
+
 
 
