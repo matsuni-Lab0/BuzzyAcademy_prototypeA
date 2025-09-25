@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Buzzy Academy – データ駆動版（敵/プレイヤー切替・モバイル最適化）</title>
+<title>Buzzy Academy ? データ駆動版（敵/プレイヤー切替・モバイル最適化）</title>
 <style>
   :root{
     --cell:48px; --gap:6px;
@@ -60,10 +60,24 @@
   .hpfill{height:100%;width:100%;background:var(--good);transition:width .25s}
   .hptext{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:11px;color:#e5e7eb;text-shadow:0 1px 0 #000}
 
-  .row{display:grid;grid-template-columns:auto var(--barW) auto;gap:8px;align-items:center;margin-top:8px;min-height:32px}
-  .skillinfo{font-size:13px;color:#e5e7eb;display:flex;align-items:center;gap:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:40vw}
+  /* ▼▼ 攻撃行（EN行）を安定させるレイアウト ▼▼ */
+  .row{
+    display:grid;
+    grid-template-columns: minmax(0,1fr) var(--barW) auto; /* 左:縮む/ 中:固定幅 / 右:ボタン */
+    gap:8px; align-items:center; margin-top:8px; min-height:32px;
+  }
+  .skillinfo{
+    font-size:13px; color:#e5e7eb; display:flex; align-items:center; gap:8px;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+    min-width:0; /* ← 左カラムが中カラム(バー)を押し潰さない */
+  }
   .dot{width:12px;height:12px;border-radius:3px;display:inline-block;flex:0 0 auto}
-  .ready{font-size:11px;color:#fff;background:#16a34a;padding:2px 6px;border-radius:999px;margin-left:6px;display:none}
+  .ready{
+    font-size:11px;color:#fff;background:#16a34a;padding:2px 6px;border-radius:999px;margin-left:6px;
+    display:inline-block;              /* 常にインラインブロック */
+    visibility:hidden;                 /* 表示/非表示は visibility で制御し、幅は維持 */
+    min-width:54px; text-align:center; /* READY の有無で横幅が揺れない */
+  }
   .bar.en{width:var(--barW);height:10px}
   .filled{outline:2px solid #fff; outline-offset:-2px; box-shadow:0 0 10px 2px rgba(255,255,255,.5)}
   .btn{padding:7px 10px;border-radius:8px;border:1px solid #4b5563;background:var(--btn);color:#e5e7eb;cursor:pointer;min-width:64px;transition:box-shadow .2s,transform .1s,background .2s}
@@ -97,15 +111,15 @@
     .vs-text{font-size:16px}
     .vs-line{font-size:12px}
   }
-  .vs-line {
-  word-spacing: 0.8em; /* 数値を変えるとスペース幅が変わります */
-}
+
+  /* VS の左右スペースはここで調整可能 */
+  .vs-line { word-spacing: 0.8em; }
 </style>
 </head>
 <body>
   <div id="wrap">
     <h1>
-      <span>Buzzy Academy – データ駆動版</span>
+      <span>Buzzy Academy ? データ駆動版</span>
       <button id="btn-reset" class="debug-btn" title="臨時デバッグ用：ゲームを即リセット">リセット</button>
     </h1>
 
@@ -326,7 +340,8 @@ function updateBars(){
 function toggleReady(colorKey,on){
   const badge=document.getElementById(`badge-${colorKey}`);
   const wrap=document.getElementById(`barwrap-${colorKey}`);
-  badge.style.display=on?'inline-block':'none';
+  /* 表示切替は visibility を使用して横幅の揺れを防止 */
+  badge.style.visibility = on ? 'visible' : 'hidden';
   wrap.classList.toggle('filled',on);
 }
 function setButtonEnabled(colorKey,on){
@@ -506,5 +521,3 @@ function resetGame(){
 </script>
 </body>
 </html>
-
-
