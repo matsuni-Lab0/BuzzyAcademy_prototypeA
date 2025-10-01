@@ -32,6 +32,8 @@
   /* バー共通 */
   .bar{height:10px;background:var(--bar-bg);border-radius:8px;overflow:hidden;position:relative}
   .fill{height:100%;width:0%;transition:width .25s}
+  /* ★TIME専用：右端固定で縮む＝左→右に減る見え方 */
+  .fill.right{position:absolute; right:0; top:0; bottom:0;}
   .cap-inline{font-size:11px;color:var(--muted);margin-left:6px}
 
   /* ← 新規：TIME/HP を1行2分割で配置 */
@@ -145,7 +147,8 @@
           <span id="time-cap" class="cap-inline"></span>
         </div>
         <div class="bar" id="time-wrap">
-          <div id="time-fill" class="fill" style="background:#10b981;width:100%"></div>
+          <!-- ★ここ：rightクラスを追加して右端固定で縮む -->
+          <div id="time-fill" class="fill right" style="background:#10b981;width:100%"></div>
         </div>
       </div>
       <!-- HP（右） -->
@@ -176,8 +179,6 @@
       <div class="battle-center" id="fx-area"><span class="vs-text">VS</span></div>
       <img id="player-img" class="battle-img" src="images/play1.png" alt="player">
     </div>
-
-    <!-- （旧）敵HPバーは削除しました -->
 
     <!-- EN：3行 -->
     <div class="row">
